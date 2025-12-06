@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Weaknesses of Modern Hash Functions</title>
+  <meta name="description" content="Project: Weaknesses of Modern Hash Functions — overview, attacks, and Hashcat practical examples." />
+  <!-- Google Fonts 추가 -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="logo">HF</div>
+      <div>
+        <h1>Weaknesses of Modern Hash Functions</h1>
+        <p class="lead">Overview • Attack types • Hashcat • Recommendations</p>
+      </div>
+    </header>
+
+    <nav class="topnav" aria-label="Quick links">
+      <a href="#intro">Introduction</a>
+      <a href="#state">Current State of the Art</a>
+      <a href="#attacks">Attack types</a>
+      <a href="#hashcat">Hashcat</a>
+      <!-- <a href="#opinion">Opinion</a> -->
+      <a href="#conclusion">Conclusion</a>
+      <a href="#references">References</a>
+    </nav>
+
+    <main>
+      <article class="content">
+
+        <section id="intro">
+          <h2>Introduction</h2>
+          <p>This project explains why some widely used hash functions are considered weak today, describes the most important attack classes, and demonstrates practical password-recovery workflows with <strong><a href="https://hashcat.org/" target="_blank" style="color:var(--accent-secondary)">Hashcat</a></strong>. The goal is practical understanding: how algorithm design and usage patterns (salting, iteration, algorithm choice) determine real-world resistance to attacks.</p>
+        </section>
+
+        <section id="state">
+          <h2>Current state of the art</h2>
+
+          <!-- <h3 style="margin:4px 0 6px 0; font-size:15px; color: var(--text-muted);">(1) Hash algorithms currently in use</h3> -->
+          <!-- <p>Common hash families and where they are used:</p> -->
+          <div class="cards">
+            <div class="card"><h3 style="font-size:18px;margin:0 0 6px 0;">MD5</h3><p class="toc">Fast but <span style="color:var(--accent-danger);">broken</span> for <span style="color:var(--accent-danger);">collision resistance</span>. Deprecated for signatures.</p></div>
+            <div class="card"><h3 style="font-size:18px;margin:0 0 6px 0;">SHA-1</h3><p class="toc"><span style="color:var(--accent-danger);">Collision attacks</span> demonstrated (SHAttered/Chosen-prefix). <span style="color:var(--accent-danger);">Avoid</span> for integrity guarantees.</p></div>
+            <div class="card"><h3 style="font-size:18px;margin:0 0 6px 0;">SHA-2 / SHA-256</h3><p class="toc">Currently considered secure for collisions/preimage with correct usage.</p></div>
+            <div class="card"><h3 style="font-size:18px;margin:0 0 6px 0;">SHA-3</h3><p class="toc">Newer design (Keccak) with different structure; conservative choice.</p></div>
+            <div class="card"><h3 style="font-size:18px;margin:0 0 6px 0;">PBKDF2 / bcrypt / scrypt / Argon2</h3><p class="toc">Password hashing families that intentionally slow hashing (CPU / memory hardness).</p></div>
+          </div>
+
+        </section>
+
+        <section id="attacks">
+          <h2>Attack types</h2>
+          
+          <div style="margin-bottom: 32px;">
+            <h3 style="font-size:18px;margin:0 0 12px 0; color: var(--accent-secondary); font-weight: 600;">1. Collision Attacks</h3>
+            <p style="margin:0 0 8px 0;"><strong>Definition</strong></p>
+            <p class="toc" style="margin:0 0 16px 0;">A collision occurs when two different messages, m1 and m2, produce the same hash value despite being distinct:</p>
+            <p class="formula-box">m1 ≠ m2, but H(m1) = H(m2).</p>
+            <p style="margin:16px 0 8px 0;"><strong>Security Impact</strong></p>
+            <p class="toc" style="margin:0 0 16px 0;">This undermines integrity and digital signatures, because a signature typically applies to the hash rather than the full message. If an attacker can craft two different documents with identical hashes, they may replace a legitimate document with a malicious one without invalidating the signature.</p>
+            <p style="margin:16px 0 8px 0;"><strong>Example</strong></p>
+            <ul style="margin:0 0 16px 0; padding-left: 20px;">
+              <li class="toc">In 2017, researchers generated a collision on SHA-1 and produced two visually different PDF files that shared the same SHA-1 hash.</li>
+              <li class="toc">A signed "safe" PDF could be replaced with a "dangerous" one while preserving the signature's validity.</li>
+            </ul>
+          </div>
+
+          <div style="margin-bottom: 32px; padding-top: 24px; border-top: 1px solid var(--divider);">
+            <h3 style="font-size:18px;margin:0 0 12px 0; color: var(--accent-secondary);">2. Preimage Attacks</h3>
+            <p style="margin:0 0 8px 0;"><strong>First Preimage Attack</strong></p>
+            <p class="toc" style="margin:0 0 12px 0;">Given a hash value h, the goal is to find a message m such that H(m) = h.</p>
+            <p class="toc" style="margin:0 0 16px 0;">If successful, this breaks the assumption that a hash uniquely commits to a specific message.</p>
+            <p style="margin:16px 0 8px 0;"><strong>Second Preimage Attack</strong></p>
+            <p class="toc" style="margin:0 0 12px 0;">Given a specific message m₁, the attacker seeks a different message m₂ with the same hash:</p>
+            <p class="formula-box">m₁ ≠ m₂, but H(m₁) = H(m₂).</p>
+            <p style="margin:16px 0 8px 0;"><strong>Security Impact</strong></p>
+            <p class="toc" style="margin:0 0 16px 0;">Preimage resistance is essential for commitment schemes, digital signatures, software distribution, and forensic validation.</p>
+            <p style="margin:16px 0 8px 0;"><strong>Example</strong></p>
+            <ul style="margin:0 0 16px 0; padding-left: 20px;">
+              <li class="toc">For weak hashes like MD5, large-scale GPU attacks can find second preimages significantly faster than brute force would suggest, making MD5 unsuitable for integrity-sensitive applications.</li>
+            </ul>
+          </div>
+
+          <div style="margin-bottom: 32px; padding-top: 24px; border-top: 1px solid var(--divider);">
+            <h3 style="font-size:18px;margin:0 0 12px 0; color: var(--accent-secondary); font-weight: 600;">3. Length Extension Attacks</h3>
+            <p style="margin:0 0 8px 0;"><strong>Definition</strong></p>
+            <p class="toc" style="margin:0 0 12px 0;">Hash functions based on the Merkle–Damgård construction (e.g., MD5, SHA-1, SHA-256) allow an attacker to compute:</p>
+            <p class="formula-box">H(message || padding || extra_data)</p>
+            <p class="toc" style="margin:0 0 16px 0;">even when they do not know the original message, as long as they know its hash.</p>
+            <p style="margin:16px 0 8px 0;"><strong>Security Impact</strong></p>
+            <p class="toc" style="margin:0 0 12px 0;">This breaks naïve authentication mechanisms such as:</p>
+            <p class="formula-box">H(secret_key || message)</p>
+            <p class="toc" style="margin:0 0 16px 0;">because the attacker can append data and compute a valid extended hash without knowing the secret key.</p>
+            <p style="margin:16px 0 8px 0;"><strong>Example</strong></p>
+            <ul style="margin:0 0 16px 0; padding-left: 20px;">
+              <li class="toc">If an API validates requests with token = H(secret || "action=read"), an attacker can create a valid token for "action=read||delete" through length extension, enabling unauthorized operations.</li>
+            </ul>
+          </div>
+
+          <div style="margin-bottom: 32px; padding-top: 24px; border-top: 1px solid var(--divider);">
+            <h3 style="font-size:18px;margin:0 0 12px 0; color: var(--accent-secondary);">4. Brute-Force and Dictionary Attacks</h3>
+            <p style="margin:0 0 8px 0;"><strong>Definition</strong></p>
+            <p class="toc" style="margin:0 0 16px 0;">An attacker tests large numbers of candidate inputs until the correct one is found. Fast hashes (e.g., MD5, SHA-1, SHA-256) allow extremely high throughput on modern GPUs, making password recovery feasible if users choose weak passwords.</p>
+            <p style="margin:16px 0 8px 0;"><strong>Security Impact</strong></p>
+            <p class="toc" style="margin:0 0 12px 0;">Unsalted or fast password hashes enable attackers to attempt billions of guesses per second.</p>
+            <p class="toc" style="margin:0 0 16px 0;">This is a primary reason modern password storage relies on slow, memory-hard algorithms like bcrypt, scrypt, or Argon2.</p>
+            <p style="margin:16px 0 8px 0;"><strong>Example</strong></p>
+            <ul style="margin:0 0 16px 0; padding-left: 20px;">
+              <li class="toc">Using a GPU-based tool such as Hashcat, attackers can test over 50 billion MD5 hashes per second, making 8-character passwords trivial to recover.</li>
+            </ul>
+          </div>
+
+          <div style="margin-bottom: 32px; padding-top: 24px; border-top: 1px solid var(--divider);">
+            <h3 style="font-size:18px;margin:0 0 12px 0; color: var(--accent-secondary); font-weight: 600;">5. Chosen-Prefix Collision Attacks</h3>
+            <p style="margin:0 0 8px 0;"><strong>Definition</strong></p>
+            <p class="toc" style="margin:0 0 12px 0;">A more powerful variant of collision attacks where the attacker can choose two different prefix messages and generate controlled suffixes so that both combined messages produce the same hash value.</p>
+            <p class="toc" style="margin:0 0 16px 0; font-family: var(--font-mono); background: rgba(255,255,255,0.05); padding: 8px; border-radius: 4px;">H(prefixA || suffixA) = H(prefixB || suffixB)</p>
+            <p style="margin:16px 0 8px 0;"><strong>Security Impact</strong></p>
+            <p class="toc" style="margin:0 0 16px 0;">This enables forgery of high-value documents or certificates, because the attacker can insert arbitrary content at the beginning while still inducing a hash collision.</p>
+            <p style="margin:16px 0 8px 0;"><strong>Example</strong></p>
+            <ul style="margin:0 0 16px 0; padding-left: 20px;">
+              <li class="toc">Chosen-prefix collision attacks on SHA-1 (Marc Stevens, 2020) allowed the creation of two different PGP identity certificates sharing the same SHA-1 hash. This made it possible to "clone" trust from a legitimate certificate to a malicious one.</li>
+            </ul>
+          </div>
+        </section>
+
+        <section id="hashcat">
+          <h2>Hashcat</h2>
+          <h4>What Is Hashcat?</h4>
+          <p>
+            <strong><a href="https://hashcat.com/" target="_blank" style="color:var(--accent-secondary)">Hashcat</a></strong> is an open-source password recovery tool designed to crack hashed passwords using high-performance GPU-accelerated computation. It supports a broad range of hash algorithms, from simple formats such as MD5 to more complex schemes used in operating systems, encrypted containers, and authentication frameworks. Hashcat provides several attack modes, including dictionary, rule-based, mask, hybrid, and brute-force attacks. Its performance advantages stem from optimized parallel processing on modern GPUs, allowing rapid evaluation of password candidates. Hashcat is commonly employed in security auditing and digital forensics, and its use must always remain within legal and authorized environments.
+          </p>
+          <h4>Purpose of Using Hashcat</h4>
+          <p style="margin-bottom: 20px;">Hashcat is utilized in cybersecurity environments for several critical purposes:</p>
+          <div class="cards" style="margin-bottom: 24px;">
+            <div class="card">
+              <h3 style="font-size:16px;margin:0 0 8px 0;">Security Auditing</h3>
+              <p class="toc" style="margin:0;">Organizations use Hashcat to evaluate the strength of their password policies. By attempting to crack password hashes, security teams can identify weak or predictable credentials and reinforce authentication requirements before an actual breach occurs.</p>
+            </div>
+            <div class="card">
+              <h3 style="font-size:16px;margin:0 0 8px 0;">Incident Response and Digital Forensics</h3>
+              <p class="toc" style="margin:0;">During security incident investigations, analysts may need to recover passwords from compromised systems to determine the extent of unauthorized access. Hashcat enables the controlled recovery of password material from hash values, supporting evidence analysis and timeline reconstruction.</p>
+            </div>
+            <div class="card">
+              <h3 style="font-size:16px;margin:0 0 8px 0;">Password Strength Validation</h3>
+              <p class="toc" style="margin:0;">When deploying new systems or applications, developers and security engineers use Hashcat to test whether implemented password rules are resilient against real-world attack methods. This helps verify that users are adequately protected from common credential-based attacks.</p>
+            </div>
+            <div class="card">
+              <h3 style="font-size:16px;margin:0 0 8px 0;">Security Research and Training</h3>
+              <p class="toc" style="margin:0;">Hashcat provides a practical platform for studying hashing algorithms, attack techniques, and GPU-accelerated computation. It is widely used in academic and professional training environments to simulate offensive and defensive security scenarios.</p>
+            </div>
+            <div class="card">
+              <h3 style="font-size:16px;margin:0 0 8px 0;">Authorized Password Recovery</h3>
+              <p class="toc" style="margin:0;">In legally approved contexts, Hashcat may be used to recover passwords that have been lost or forgotten when only the hash is available. This is strictly limited to systems for which explicit authorization has been granted.</p>
+            </div>
+          </div>
+          <h4>How to use Hashcat?</h4>
+            <div class="card">
+              <h3>1) Basic dictionary attack (MD5)</h3>
+              <p>Command (example):</p>
+              <pre><code>hashcat -m 0 -a 0 hashes_md5.txt rockyou.txt --status --force</code></pre>
+              <p class="toc">Notes: <code>-m 0</code> selects MD5. Fast on GPUs — demonstrates why raw MD5 is unsuitable for password storage.</p>
+            </div>
+            <div class="card" style="margin-top:10px">
+              <h3>2) Salted SHA-256 (dictionary + rule)</h3>
+              <pre><code>hashcat -m 1410 -a 0 salted_hashes.txt wordlist.txt -r rules/best64.rule --username</code></pre>
+              <p class="toc">Use <code>--username</code> when the file format is <code>user:hash:salt</code> or similar. Iteration counts increase cost.</p>
+            </div>
+            <div class="card" style="margin-top:10px">
+              <h3>3) Slow password hash (bcrypt)</h3>
+              <pre><code>hashcat -m 3200 -a 0 bcrypt_hashes.txt wordlist.txt</code></pre>
+              <p class="toc">bcrypt intentionally limits throughput; expect very low attempts/sec. Useful to compare performance numbers and demonstrate defensive value.</p>
+            </div>
+        </section>
+
+        <section id="conclusion">
+          <h2>Conclusion</h2>
+          <p>
+            A recent incident occurred at SKT, one of the three major telecom companies in Korea, 
+            involving serious issues with password security. 
+            In this case, the problem wasn’t that the server passwords were protected by a weak hashing algorithm, 
+            but that they were stored without any encryption at all. 
+            Through this investigation and practice, I realized once again how alarming the security situation is, 
+            especially considering that a telecom provider used by more than half of the Korean population kept server passwords in plain text. 
+            As I will likely operate servers or websites in my future career, this incident reinforced my commitment to avoiding weak algorithms and instead using secure ones 
+            such as Argon2 or bcrypt to ensure proper protection.
+          </p>
+          <!-- <p>Hash functions differ by design goals: speed vs resistance to brute-force. Fast cryptographic hashes (MD5, SHA-1) are unsuitable for password storage; modern systems must adopt slow, memory-hard functions and proper salting. Demonstrations with <a href="https://hashcat-tools.com/" target="_blank" style="color:var(--accent-secondary)">Hashcat</a> make these differences tangible and are an excellent way to convey danger and mitigations in a 10-minute presentation.</p> -->
+        </section>
+
+        <section id="references">
+          <h2>References</h2>
+          <ol>
+            <li><a href="https://hashcat-docs.net/" target="_blank" style="color:var(--accent-secondary)">Hashcat documentation (official)</a></li>
+            <li>Research: SHAttered (Google) — SHA-1 collision</li>
+            <li>NIST recommendations for password storage and hashing</li>
+            <li>Argon2 specification (Password Hashing Competition)</li>
+          </ol>
+        </section>
+
+      </article>
+
+      <aside class="aside" aria-label="Project table of contents">
+        <div class="toc" id="toc">
+          <strong>On this page</strong>
+          <a href="#intro">Introduction</a>
+          <a href="#state">Current State of the Art</a>
+          <a href="#attacks">Attack types</a>
+          <a href="#hashcat">Hashcat</a>
+          <!-- <a href="#opinion">Opinion</a> -->
+          <a href="#conclusion">Conclusion</a>
+          <a href="#references">References</a>
+        </div>
+      </aside>
+    </main>
+
+    <footer>
+      <small>Project: Weaknesses of Modern Hash Functions • Educational purposes only</small>
+    </footer>
+  </div>
+
+  <button id="scrollTopBtn" aria-label="Scroll to top">↑</button>
+
+  <script src="script.js"></script>
+</body>
+</html>
