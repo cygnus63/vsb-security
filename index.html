@@ -35,7 +35,6 @@
                 <a href="#state">Current State of the Art</a>
                 <a href="#attacks">Attack types</a>
                 <a href="#hashcat">Hashcat</a>
-                <!-- <a href="#opinion">Opinion</a> -->
                 <a href="#conclusion">Conclusion</a>
                 <a href="#references">References</a>
             </nav>
@@ -61,14 +60,10 @@
                             as salting and iteration) directly influence
                             real-world security strength.
                         </p>
-                        <!-- <p>This project explains why some widely used hash functions are considered weak today, describes the most important attack classes, and demonstrates practical password-recovery workflows with <strong><a href="https://hashcat.org/" target="_blank" style="color:var(--accent-secondary)">Hashcat</a></strong>. The goal is practical understanding: how algorithm design and usage patterns (salting, iteration, algorithm choice) determine real-world resistance to attacks.</p> -->
                     </section>
 
                     <section id="state">
                         <h2>Current state of the art</h2>
-
-                        <!-- <h3 style="margin:4px 0 6px 0; font-size:15px; color: var(--text-muted);">(1) Hash algorithms currently in use</h3> -->
-                        <!-- <p>Common hash families and where they are used:</p> -->
                         <div class="cards">
                             <div class="card">
                                 <h3 style="font-size: 18px; margin: 0 0 6px 0">
@@ -573,7 +568,6 @@
                             weak algorithms and instead using secure ones such
                             as Argon2 or bcrypt to ensure proper protection.
                         </p>
-                        <!-- <p>Hash functions differ by design goals: speed vs resistance to brute-force. Fast cryptographic hashes (MD5, SHA-1) are unsuitable for password storage; modern systems must adopt slow, memory-hard functions and proper salting. Demonstrations with <a href="https://hashcat-tools.com/" target="_blank" style="color:var(--accent-secondary)">Hashcat</a> make these differences tangible and are an excellent way to convey danger and mitigations in a 10-minute presentation.</p> -->
                     </section>
 
                     <section id="references">
@@ -581,22 +575,39 @@
                         <ol>
                             <li>
                                 <a
-                                    href="https://hashcat-docs.net/"
+                                    href="https://hashcat.net/wiki/"
                                     target="_blank"
                                     style="color: var(--accent-secondary)"
                                     >Hashcat documentation (official)</a
                                 >
                             </li>
                             <li>
-                                Research: SHAttered (Google) — SHA-1 collision
+                                <a
+                                    href="https://shattered.io/static/shattered.pdf"
+                                    target="_blank"
+                                    style="color: var(--accent-secondary)"
+                                    >Research: SHAttered (Google) — SHA-1
+                                    collision</a
+                                >
+                            </li>
+
+                            <li>
+                                <a
+                                    href="https://pages.nist.gov/800-63-3/sp800-63b.html"
+                                    target="_blank"
+                                    style="color: var(--accent-secondary)"
+                                    >NIST recommendations for password storage
+                                    and hashing</a
+                                >
                             </li>
                             <li>
-                                NIST recommendations for password storage and
-                                hashing
-                            </li>
-                            <li>
-                                Argon2 specification (Password Hashing
-                                Competition)
+                                <a
+                                    href="https://www.password-hashing.net/argon2-specs.pdf"
+                                    target="_blank"
+                                    style="color: var(--accent-secondary)"
+                                    >Argon2 specification (Password Hashing
+                                    Competition)</a
+                                >
                             </li>
                         </ol>
                     </section>
@@ -609,7 +620,6 @@
                         <a href="#state">Current State of the Art</a>
                         <a href="#attacks">Attack types</a>
                         <a href="#hashcat">Hashcat</a>
-                        <!-- <a href="#opinion">Opinion</a> -->
                         <a href="#conclusion">Conclusion</a>
                         <a href="#references">References</a>
                     </div>
